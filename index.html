@@ -1,0 +1,295 @@
+<!DOCTYPE html> <html> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Запись на пробное занятие</title> <script src="https://telegram.org/js/telegram-web-app.js"></script> <style> * { margin: 0; padding: 0; box-sizing: border-box; }
+text
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                     Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--tg-theme-bg-color);
+        color: var(--tg-theme-text-color);
+        padding: 20px;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    h2 {
+        margin-bottom: 10px;
+        font-size: 24px;
+    }
+
+    .info {
+        color: var(--tg-theme-hint-color);
+        font-size: 14px;
+        margin-bottom: 20px;
+        padding: 12px;
+        background-color: var(--tg-theme-secondary-bg-color);
+        border-radius: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--tg-theme-text-color);
+        font-size: 14px;
+    }
+
+    input, textarea, select {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--tg-theme-hint-color);
+        border-radius: 8px;
+        font-size: 16px;
+        font-family: inherit;
+        background-color: var(--tg-theme-secondary-bg-color);
+        color: var(--tg-theme-text-color);
+        transition: border-color 0.3s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: #0088cc;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .error {
+        color: #ff3b30;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+
+    .required {
+        color: #ff3b30;
+    }
+
+    .success-message {
+        display: none;
+        padding: 16px;
+        background-color: #34C759;
+        color: white;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+</style>
+</head> <body> <div class="container"> <h2>📝 Запись на пробное занятие</h2> <div class="info"> <strong>Стоимость:</strong> 300 рублей 💰<br> <strong>Длительность:</strong> ~1 час ⏰<br> <strong>Уровень:</strong> для новичков 🎯 </div>
+text
+    <div class="success-message" id="successMessage">
+        ✅ Данные отправлены! Ожидайте ссылку на оплату...
+    </div>
+
+    <form id="bookingForm">
+        <!-- Имя -->
+        <div class="form-group">
+            <label for="name">
+                Ваше имя <span class="required">*</span>
+            </label>
+            <input 
+                type="text" 
+                id="name" 
+                required 
+                placeholder="Например, Елена"
+                maxlength="100"
+            >
+            <div class="error" id="nameError">
+                ❌ Введите ваше имя (минимум 2 символа)
+            </div>
+        </div>
+
+        <!-- Телефон -->
+        <div class="form-group">
+            <label for="phone">
+                Телефон <span class="required">*</span>
+            </label>
+            <input 
+                type="tel" 
+                id="phone" 
+                required 
+                placeholder="+7 900 123-45-67"
+                maxlength="20"
+            >
+            <div class="error" id="phoneError">
+                ❌ Введите корректный номер в формате +7ХХХХХХХХХХ или 8ХХХХХХХХХХ
+            </div>
+        </div>
+
+        <!-- Дата и время -->
+        <div class="form-group">
+            <label for="datetime">
+                Желаемая дата и время <span class="required">*</span>
+            </label>
+            <input 
+                type="text" 
+                id="datetime" 
+                required 
+                placeholder="Например: завтра в 18:00 или 3 ноября, вечером"
+                maxlength="200"
+            >
+            <div class="error" id="datetimeError">
+                ❌ Укажите желаемую дату и время
+            </div>
+        </div>
+
+        <!-- Цели -->
+        <div class="form-group">
+            <label for="goals">Ваши цели (опционально)</label>
+            <textarea 
+                id="goals" 
+                placeholder="Например: похудеть, улучшить выносливость, привести себя в тонус, укрепить здоровье"
+                maxlength="300"
+            ></textarea>
+        </div>
+
+        <!-- Способ связи -->
+        <div class="form-group">
+            <label for="contact">
+                Удобный способ связи <span class="required">*</span>
+            </label>
+            <select id="contact" required>
+                <option value="">-- Выберите способ связи --</option>
+                <option value="whatsapp">📱 WhatsApp</option>
+                <option value="telegram">✈️ Telegram</option>
+                <option value="phone">☎️ Телефонный звонок</option>
+            </select>
+            <div class="error" id="contactError">
+                ❌ Выберите способ связи
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // === ИНИЦИАЛИЗАЦИЯ TELEGRAM WEB APP ===
+    let tg = window.Telegram.WebApp;
+    tg.expand(); // Разворачиваем на весь экран
+
+    // ========== ФУНКЦИИ ВАЛИДАЦИИ ==========
+
+    /**
+     * Валидация российского телефона
+     * Принимает форматы:
+     * +7 900 123 45 67
+     * +79001234567
+     * 8 900 123 45 67
+     * 89001234567
+     */
+    function validatePhone(phone) {
+        const cleaned = phone.replace(/[\s\-$$$$]/g, '');
+        // +7ХХХХХХХХХХ или 8ХХХХХХХХХХ или 7ХХХХХХХХХХ
+        const regex = /^(\+7|8|7)\d{10}$/;
+        return regex.test(cleaned);
+    }
+
+    /**
+     * Нормализация телефона к формату +7ХХХХХХХХХХ
+     * Преобразует: 89001234567 → +79001234567
+     */
+    function normalizePhone(phone) {
+        let cleaned = phone.replace(/[\s\-$$$$]/g, '');
+        
+        if (cleaned.startsWith('8')) {
+            // 8ХХХХХХХХХХ → +7ХХХХХХХХХХ
+            cleaned = '+7' + cleaned.substring(1);
+        } else if (cleaned.startsWith('7') && !cleaned.startsWith('+7')) {
+            // 7ХХХХХХХХХХ → +7ХХХХХХХХХХ
+            cleaned = '+' + cleaned;
+        } else if (!cleaned.startsWith('+')) {
+            // Добавляем + если его нет
+            cleaned = '+' + cleaned;
+        }
+        
+        return cleaned;
+    }
+
+    /**
+     * Полная валидация формы
+     */
+    function validateForm() {
+        let isValid = true;
+
+        // Получаем значения
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const datetime = document.getElementById('datetime').value.trim();
+        const contact = document.getElementById('contact').value;
+
+        // Скрыть все ошибки
+        document.querySelectorAll('.error').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Валидация имени
+        if (!name || name.length < 2) {
+            document.getElementById('nameError').style.display = 'block';
+            isValid = false;
+        }
+
+        // Валидация телефона
+        if (!validatePhone(phone)) {
+            document.getElementById('phoneError').style.display = 'block';
+            isValid = false;
+        }
+
+        // Валидация даты/времени
+        if (!datetime || datetime.length < 3) {
+            document.getElementById('datetimeError').style.display = 'block';
+            isValid = false;
+        }
+
+        // Валидация способа связи
+        if (!contact) {
+            document.getElementById('contactError').style.display = 'block';
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // ========== НАСТРОЙКА UI ==========
+
+    // Главная кнопка
+    tg.MainButton.setText('✅ Продолжить к оплате');
+    tg.MainButton.textColor = '#FFFFFF';
+    tg.MainButton.color = '#0088cc';
+    tg.MainButton.show();
+
+    // Обработчик клика главной кнопки
+    tg.MainButton.onClick(function() {
+        if (validateForm()) {
+            // Показываем сообщение об успехе
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Собираем данные
+            const formData = {
+                name: document.getElementById('name').value.trim(),
+                phone: normalizePhone(document.getElementById('phone').value.trim()),
+                datetime: document.getElementById('datetime').value.trim(),
+                goals: document.getElementById('goals').value.trim() || 'Не указаны',
+                contact: document.getElementById('contact').value
+            };
+
+            // Отправляем данные боту через Web App API
+            tg.sendData(JSON.stringify(formData));
+        } else {
+            // Показываем ошибку
+            tg.showAlert('⚠️ Пожалуйста, заполните все обязательные поля корректно');
+        }
+    });
+
+    // Сообщаем Telegram, что приложение готово
+    tg.ready();
+</script>
+</body> </html> 
