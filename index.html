@@ -28,26 +28,45 @@
       animation: fadeIn 0.9s cubic-bezier(.35,1.2,.35,1);
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(30px);} to { opacity: 1; transform: none;} }
-    .header-emoji { font-size: 2.3rem; text-align:center; margin-bottom: 8px; animation: pulse 1.4s infinite alternate;}
+    
+    .header-section { text-align: center; margin-bottom: 18px; }
+    .header-emoji { 
+      font-size: 2.3rem; 
+      display: block;
+      margin-bottom: 8px; 
+      animation: pulse 1.4s infinite alternate;
+    }
     @keyframes pulse { from { transform: scale(1);} to { transform: scale(1.09);} }
+    
     h2 {
       text-align: center;
       color: #ff5bb0;
       font-family: 'Montserrat', 'Inter', sans-serif;
       font-weight: 700;
       font-size: 1.45rem;
-      margin-bottom: 7px;
+      margin: 0 0 7px 0;
     }
     .subtitle {
       text-align: center;
       color: #b587fe;
       font-size: 1.10rem;
-      margin-bottom: 22px;
+      margin-bottom: 16px;
       font-weight: 500;
     }
     .form-group { margin-bottom: 16px; }
     label { color: #7f4da2; font-weight: 500; font-size: 1rem; margin-bottom: 6px; display: block;}
     .required { color: #ff3b30; margin-left: 3px;}
+    
+    .date-time-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .date-time-group input,
+    .date-time-group select {
+      width: 100%;
+    }
+    
     input, textarea, select {
       width: 100%;
       padding: 11px 14px;
@@ -55,9 +74,11 @@
       border-radius: 12px;
       font-size: 1rem;
       background: #fff8fb;
-      margin-bottom: 0px;
       font-family: 'Inter', Arial, sans-serif;
       transition: border 0.2s;
+    }
+    input[type="date"] {
+      cursor: pointer;
     }
     input:focus, textarea:focus, select:focus { border-color: #ff7ecb; outline: none; }
     textarea { min-height: 70px; resize: vertical; }
@@ -128,8 +149,10 @@
 </head>
 <body>
   <div class="container">
-    <span class="header-emoji">🤸‍♀️</span>
-    <h2>Твоя энергия начинается здесь!</h2>
+    <div class="header-section">
+      <span class="header-emoji">🤸‍♀️</span>
+      <h2>Твоя энергия начинается здесь!</h2>
+    </div>
     <div class="subtitle">Запишись на пробное занятие и почувствуй радость движения <span style="font-size:1.12em;">✨</span></div>
     <div class="success-message" id="successMessage">Спасибо за заявку! Мы свяжемся с вами в ближайшее время 😊</div>
     <form id="bookingForm" autocomplete="off">
@@ -143,11 +166,25 @@
         <input type="tel" id="phone" name="phone" maxlength="20" required placeholder="+7 900 123-45-67">
         <div class="error" id="phoneError">Укажите корректный номер (7XXXXXXXXXX)</div>
       </div>
+      
       <div class="form-group">
-        <label for="datetime">Желаемая дата и время <span class="required">*</span></label>
-        <input type="text" id="datetime" name="datetime" maxlength="200" required placeholder="ДД.ММ.ГГГГ HH:MM">
-        <div class="error" id="datetimeError">Укажите дату и время занятия</div>
+        <label>Желаемая дата и время <span class="required">*</span></label>
+        <div class="date-time-group">
+          <div>
+            <input type="date" id="date" name="date" required>
+            <div class="error" id="dateError">Укажите дату</div>
+          </div>
+          <div>
+            <select id="time" name="time" required>
+              <option value="">Время</option>
+              <option value="19:00">19:00</option>
+              <option value="20:00">20:00</option>
+            </select>
+            <div class="error" id="timeError">Выберите время</div>
+          </div>
+        </div>
       </div>
+      
       <div class="form-group">
         <label for="goals">Ваша цель</label>
         <textarea id="goals" name="goals" maxlength="300" placeholder="Например: похудеть, зарядиться энергией, найти друзей"></textarea>
@@ -173,7 +210,6 @@
     let tg = window.Telegram.WebApp || {};
     if (tg.expand) tg.expand();
 
-    // Валидация
     function validatePhone(phone) {
       const cleaned = phone.replace(/\D/g, "");
       const regex = /^7\d{10}$/;
@@ -189,7 +225,8 @@
       let isValid = true;
       const name = document.getElementById("name").value.trim();
       const phone = document.getElementById("phone").value.trim();
-      const datetime = document.getElementById("datetime").value.trim();
+      const date = document.getElementById("date").value;
+      const time = document.getElementById("time").value;
       const contact = document.getElementById("contact").value;
       document.querySelectorAll(".error").forEach(el => el.style.display = "none");
       if (!name || name.length < 2) {
@@ -200,8 +237,12 @@
         document.getElementById("phoneError").style.display = "block";
         isValid = false;
       }
-      if (!datetime || datetime.length < 3) {
-        document.getElementById("datetimeError").style.display = "block";
+      if (!date) {
+        document.getElementById("dateError").style.display = "block";
+        isValid = false;
+      }
+      if (!time) {
+        document.getElementById("timeError").style.display = "block";
         isValid = false;
       }
       if (!contact) {
@@ -211,7 +252,12 @@
       return isValid;
     }
 
-    // Telegram MainButton логика (если нужно)
+    function buildDateTime() {
+      const date = document.getElementById("date").value; // YYYY-MM-DD
+      const time = document.getElementById("time").value; // HH:MM
+      return `${date} ${time}`; // "YYYY-MM-DD HH:MM"
+    }
+
     if (tg.MainButton) {
       tg.MainButton.setText('Отправить');
       tg.MainButton.textColor = "#FFFFFF";
@@ -223,7 +269,7 @@
           const formData = {
             name: document.getElementById("name").value.trim(),
             phone: normalizePhone(document.getElementById("phone").value.trim()),
-            datetime: document.getElementById("datetime").value.trim(),
+            datetime: buildDateTime(),
             goals: document.getElementById("goals").value.trim(),
             contact: document.getElementById("contact").value
           };
@@ -234,7 +280,6 @@
       });
     }
 
-    // Кнопка “Отправить”
     document.getElementById("bookingForm").addEventListener("submit", function(e) {
       e.preventDefault();
       if (validateForm()) {
@@ -242,19 +287,15 @@
         const formData = {
           name: document.getElementById("name").value.trim(),
           phone: normalizePhone(document.getElementById("phone").value.trim()),
-          datetime: document.getElementById("datetime").value.trim(),
+          datetime: buildDateTime(),
           goals: document.getElementById("goals").value.trim(),
           contact: document.getElementById("contact").value
         };
-        // Локальная отправка: в Telegram WebApp или ваш бекенд
         if (tg.sendData) {
           tg.sendData(JSON.stringify(formData));
         } else {
-          // Фоллбек: alert только для теста вне Telegram
           alert("Форма для теста:\n" + JSON.stringify(formData, null, 2));
         }
-      } else {
-        // Ошибки отображаются непосредственно под полями
       }
     });
   </script>
